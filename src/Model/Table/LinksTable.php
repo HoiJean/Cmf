@@ -5,6 +5,8 @@ use Cake\ORM\Query;
 use Cake\ORM\RulesChecker;
 use Cake\ORM\Table;
 use Cake\Validation\Validator;
+use Cake\Event\Event;
+use App\Model\Entity\Link;
 
 /**
  * Links Model
@@ -42,6 +44,11 @@ class LinksTable extends Table
 
         $this->addBehavior('Tree');
 
+        $this->addBehavior('Muffin/Slug.Slug', [
+            'field' => 'slug',
+            'onUpdate' => true
+        ]);
+
         $this->belongsTo('Menus', [
             'foreignKey' => 'menu_id',
             'joinType' => 'INNER'
@@ -54,6 +61,18 @@ class LinksTable extends Table
             'className' => 'Links',
             'foreignKey' => 'parent_id'
         ]);
+    }
+
+    public function beforeSave(Event $event, Link $link)
+    {
+        if(isset($link->parent_id))
+        {
+            $parentSlug = $this->get($link->parent_id)->slug;
+            $newSlug = $parentSlug . "/" . $link->slug;
+            $link->slug = $newSlug;
+
+            $children = $this->find('all')->where(['parent_id = ' => $link->id ]);
+        }
     }
 
     /**
